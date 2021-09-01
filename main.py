@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 class ETLDownloader:
-    DOWNLOAD_PATH = "./download"
+    DOWNLOAD_PATH = "downloads"
 
     def __init__(self):
         self.s = requests.Session()
@@ -23,11 +23,11 @@ class ETLDownloader:
         return BeautifulSoup(html, "html.parser")
 
     def _get_tmp_dir(self):
-        return os.path.join("downloads", self.selected_course.title, "tmp")
+        return os.path.join(self.DOWNLOAD_PATH, self.selected_course.title, "tmp")
 
     def _get_video_dir(self, video: Video):
         return os.path.join(
-            "downloads", self.selected_course.title, video.title + ".ts"
+            self.DOWNLOAD_PATH, self.selected_course.title, video.title + ".ts"
         )
 
     def login(self):
@@ -137,6 +137,7 @@ class ETLDownloader:
         self.parse_course_list()
         self.select_course_to_download()
         self.download_all_videos()
+        print("\n 다운로드 완료!")
 
 
 if __name__ == "__main__":
