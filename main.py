@@ -128,7 +128,7 @@ class ETLDownloader:
     def download_all_videos(self):
         videos = self.get_course_vods()
         for video in videos:
-            if Path(self._get_video_dir(video)).exists():
+            if Path(self._get_video_dir(video, safe_filename=True)).exists():
                 print(f"\t[*] {video.title}.ts 파일이 이미 존재하므로 건너뜁니다.")
                 continue
             self.download_vod(video)
