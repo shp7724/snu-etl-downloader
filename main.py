@@ -25,9 +25,12 @@ class ETLDownloader:
     def _get_tmp_dir(self):
         return os.path.join(self.DOWNLOAD_PATH, self.selected_course.title, "tmp")
 
-    def _get_video_dir(self, video: Video):
+    def _get_video_dir(self, video: Video, safe_filename=False):
+        filename = video.title + ".ts"
+        if safe_filename:
+            filename = filename.replace('/', '-')
         return os.path.join(
-            self.DOWNLOAD_PATH, self.selected_course.title, video.title + ".ts"
+            self.DOWNLOAD_PATH, self.selected_course.title, filename
         )
 
     def login(self):
@@ -112,7 +115,7 @@ class ETLDownloader:
         directory = self._get_tmp_dir()
         files = [f"{index}_{video.media_id}.ts" for index in range(video.num_files)]
         with open(
-            self._get_video_dir(video),
+            self._get_video_dir(video, safe_filename=True),
             "wb",
         ) as outfile:
             for fname in files:
