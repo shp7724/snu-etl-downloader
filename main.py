@@ -66,7 +66,10 @@ class ETLDownloader:
         soup = self._get_soup(self.s.get(url=self.selected_course.url).text)
         vods: List[Video] = []
         for instance in soup.find_all(class_="activityinstance"):
-            href = instance.find("a").get("href")
+            try:
+                href = instance.find("a").get("href")
+            except AttributeError:
+                continue
             if "vod" not in href:
                 continue
             vods.append(
