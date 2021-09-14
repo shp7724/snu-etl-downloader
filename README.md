@@ -5,7 +5,7 @@
 # Installation
 
 ```bash
-git clone
+git clone https://github.com/shp7724/snu-etl-downloader.git
 cd snu-etl-downloader
 # create venv
 pip3 install -r requirements.txt
