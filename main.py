@@ -129,6 +129,7 @@ class ETLDownloader:
         shutil.rmtree(self._get_tmp_dir())
 
     def download_all_videos(self):
+        self._delete_tmp_folder()
         videos = self.get_course_vods()
         for video in videos:
             if Path(self._get_video_dir(video, safe_filename=True)).exists():
