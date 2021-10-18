@@ -126,7 +126,10 @@ class ETLDownloader:
                     shutil.copyfileobj(infile, outfile)
 
     def _delete_tmp_folder(self):
-        shutil.rmtree(self._get_tmp_dir())
+        try:
+            shutil.rmtree(self._get_tmp_dir())
+        except FileNotFoundError:
+            return
 
     def download_all_videos(self):
         self._delete_tmp_folder()
