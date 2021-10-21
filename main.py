@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 from typing import List, Tuple
 from utils import SecretsManager
 from bs4 import BeautifulSoup
@@ -28,10 +29,8 @@ class ETLDownloader:
     def _get_video_dir(self, video: Video, safe_filename=False):
         filename = video.title + ".ts"
         if safe_filename:
-            filename = filename.replace('/', '-')
-        return os.path.join(
-            self.DOWNLOAD_PATH, self.selected_course.title, filename
-        )
+            filename = filename.replace("/", "-")
+        return os.path.join(self.DOWNLOAD_PATH, self.selected_course.title, filename)
 
     def login(self):
         res = self.s.post(
@@ -59,7 +58,10 @@ class ETLDownloader:
         print()
         for i, c in enumerate(self.courses, 1):
             print(f"[{i}] {c}")
-        number = input("\n다운로드할 강좌의 번호를 입력하세요: ")
+        if len(sys.argv) > 1:
+            number = int(sys.argv[1])
+        else:
+            number = input("\n다운로드할 강좌의 번호를 입력하세요: ")
         self.selected_course = self.courses[int(number) - 1]
 
     def get_course_vods(self) -> List[Video]:
