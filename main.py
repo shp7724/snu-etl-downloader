@@ -1,13 +1,18 @@
-import requests
 import os
-import sys
-from typing import List, Tuple
-from utils import SecretsManager
-from bs4 import BeautifulSoup
-from models import *
 import re
 import shutil
+import sys
+import time
 from pathlib import Path
+from threading import Thread
+from typing import List, Tuple
+
+import requests
+import subprocess
+from bs4 import BeautifulSoup
+
+from models import *
+from utils import SecretsManager
 
 
 class ETLDownloader:
@@ -26,8 +31,8 @@ class ETLDownloader:
     def _get_tmp_dir(self):
         return os.path.join(self.DOWNLOAD_PATH, self.selected_course.title, "tmp")
 
-    def _get_video_dir(self, video: Video, safe_filename=False):
-        filename = video.title + ".ts"
+    def _get_video_dir(self, video: Video, safe_filename=False, ext: str = "ts"):
+        filename = f"{video.title}.{ext}"
         if safe_filename:
             filename = filename.replace("/", "-")
         return os.path.join(self.DOWNLOAD_PATH, self.selected_course.title, filename)
@@ -99,7 +104,7 @@ class ETLDownloader:
         endpoint, media_id = self._parse_stream_endpoint(video.player_url)
         video.media_id = media_id
         directory = self._get_tmp_dir()
-        print(f"\t[*] {video.title} 다운로드 중.", end="")
+        print(f"\t[*] {video.title} 다운로드 중.", end="", flush=True)
         while True:
             chunk_url = f"{endpoint}/media_{media_id}_{index}.ts"
             res = self.s.get(chunk_url)
@@ -113,7 +118,7 @@ class ETLDownloader:
             ) as f:
                 f.write(res.content)
             index += 1
-            print(".", end="")
+            print(".", end="", flush=True)
         video.num_files = index
 
     def concat_files(self, video: Video):
@@ -133,9 +138,33 @@ class ETLDownloader:
         except FileNotFoundError:
             return
 
+    def convert_to_mp4(self, video):
+        infile = self._get_video_dir(video, safe_filename=True)
+        outfile = self._get_video_dir(video, safe_filename=True, ext="mp4")
+        subprocess.run(["ffmpeg", "-i", infile, outfile])
+        os.remove(infile)
+
     def download_all_videos(self):
         self._delete_tmp_folder()
         videos = self.get_course_vods()
+
+        def download_video(video: Video):
+            if Path(self._get_video_dir(video, safe_filename=True, ext="mp4")).exists():
+                print(f"\t[*] {video.title}.mp4 파일이 이미 존재하므로 건너뜁니다.")
+                return
+            if Path(self._get_video_dir(video, safe_filename=True, ext="ts")).exists():
+                print(f"\t[*] {video.title}.ts 파일이 이미 존재하므로 mp4로 변환 후 건너뜁니다.")
+                self.convert_to_mp4(video)
+                return
+            self.download_vod(video)
+            self.concat_files(video)
+            self.convert_to_mp4(video)
+
+        for video in videos:
+            Thread(target=download_video, args=(video,)).start()
+            time.sleep(2)
+
+        return
         for video in videos:
             if Path(self._get_video_dir(video, safe_filename=True)).exists():
                 print(f"\t[*] {video.title}.ts 파일이 이미 존재하므로 건너뜁니다.")
