@@ -139,10 +139,12 @@ class ETLDownloader:
             return
 
     def convert_to_mp4(self, video):
+        print(f"\t[*] {video.title} 변환 시작")
         infile = self._get_video_dir(video, safe_filename=True)
         outfile = self._get_video_dir(video, safe_filename=True, ext="mp4")
         subprocess.run(["ffmpeg", "-i", infile, outfile])
         os.remove(infile)
+        print(f"\t[*] {video.title} 변환 완료")
 
     def download_all_videos(self):
         self._delete_tmp_folder()
