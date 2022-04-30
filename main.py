@@ -99,27 +99,48 @@ class ETLDownloader:
         media_id = m2.group(1)
         return endpoint, media_id
 
-    def download_vod(self, video: Video):
+    def get_last_index(self, endpoint: str, media_id: str) -> int:
         index = 0
-        endpoint, media_id = self._parse_stream_endpoint(video.player_url)
-        video.media_id = media_id
-        directory = self._get_tmp_dir()
-        print(f"\t[*] {video.title} 다운로드 중.", end="", flush=True)
         while True:
             chunk_url = f"{endpoint}/media_{media_id}_{index}.ts"
-            res = self.s.get(chunk_url)
+            res = self.s.head(chunk_url)
             if res.status_code != 200:
-                print("")
-                break
-            Path(directory).mkdir(parents=True, exist_ok=True)
-            with open(
-                os.path.join(directory, f"{index}_{media_id}.ts"),
-                "wb",
-            ) as f:
-                f.write(res.content)
+                return index
             index += 1
-            print(".", end="", flush=True)
-        video.num_files = index
+
+    def download_proc(self, endpoint: str, media_id: str, index: str, directory: str):
+        chunk_url = f"{endpoint}/media_{media_id}_{index}.ts"
+        res = self.s.get(chunk_url)
+        with open(
+            os.path.join(directory, f"{index}_{media_id}.ts"),
+            "wb",
+        ) as f:
+            f.write(res.content)
+        print(".", end="", flush=True)
+        self.done_num += 1
+
+    def download_vod(self, video: Video):
+        endpoint, media_id = self._parse_stream_endpoint(video.player_url)
+        last_index = self.get_last_index(endpoint, media_id)
+
+        video.media_id, video.num_files = media_id, last_index + 1
+
+        directory = self._get_tmp_dir()
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        print(f"\t[*] {video.title} 다운로드 중.", end="", flush=True)
+
+        self.done_num = 0
+        for index in range(video.num_files):
+            thread = Thread(
+                target=self.download_proc, args=(endpoint, media_id, index, directory)
+            )
+            thread.start()
+            time.sleep(0.05)
+
+        while self.done_num < video.num_files:
+            time.sleep(1)
+
+        print(flush=True)
 
     def concat_files(self, video: Video):
         directory = self._get_tmp_dir()
@@ -163,8 +184,10 @@ class ETLDownloader:
             self.convert_to_mp4(video)
 
         for video in videos:
-            Thread(target=download_video, args=(video,)).start()
-            time.sleep(2)
+            if "Lecture 11" in video.title or "digital" in video.title:
+                download_video(video)
+            # Thread(target=download_video, args=(video,)).start()
+            # time.sleep(2)
 
         return
         for video in videos:
